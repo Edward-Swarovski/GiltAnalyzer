@@ -98,43 +98,51 @@ Go to the DMO gilt data page and save the D1A report as a `.xml` file:
 https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A
 ```
 
-Save it as:
+Save it as `data/d1a.xml`.
 
-```
-data/d1a.xml
-```
-
-> The DMO endpoint blocks automated scripts with an anti-bot page. Always save this file manually from a browser.
+> The DMO uses bot-detection (ShieldSquare) that blocks automated script downloads. Always save this file manually from a browser.
 
 ### Step 2 — Download the DMO D10B XLS
 
 Go to the DMO Purchase and Sale Service prices page:
 
 ```
-https://www.dmo.gov.uk/data/gilt-market/purchase-and-sale-service/
+https://www.dmo.gov.uk/data/pdfdatareport?reportCode=D10B
 ```
 
-Download the daily XLS file (labelled with today's date) and save it to the `data/` folder, keeping the original filename, for example:
+1. The page shows a date picker — today's date should be pre-selected
+2. Click the **Excel** button to download the XLS file
+3. Save it to the `data/` folder, keeping the original filename, for example:
 
 ```
 data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls
 ```
 
-> If today's D10B file shows "No information to display" (e.g. on a bank holiday), use the most recent available file instead.
+> If today's file shows "No information to display" (e.g. on a bank holiday), pick the most recent business day from the date picker instead.
 
 ### Step 3 — Generate the workbook
 
-**Windows:**
+Activate the virtual environment first, then run the export command.
+
+**Windows (PowerShell):**
 ```powershell
-python main.py export-xml-with-quotes-and-retail-ask .\data\d1a.xml ".\data\20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output .\output\gilt_analysis.xlsx
+.\.venv\Scripts\Activate.ps1
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml --output ./output/gilt_analysis.xlsx
 ```
 
 **Linux / macOS:**
 ```bash
+source .venv/bin/activate
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml --output ./output/gilt_analysis.xlsx
+```
+
+The D10B file is auto-detected from `data/` — no need to type the filename. If multiple D10B files are present, the most recently modified one is used. You can pass the path explicitly if needed:
+
+```powershell
 python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
 ```
 
-Replace the D10B filename with the actual file you downloaded. Open `output/gilt_analysis.xlsx` in Excel or LibreOffice Calc.
+Open `output/gilt_analysis.xlsx` in Excel or LibreOffice Calc.
 
 ---
 
@@ -146,7 +154,7 @@ The tool combines three sources:
 |---|---|---|---|
 | DMO D1A XML | ISIN, gilt name, coupon, maturity, instrument type | `https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A` | Save from browser — automated fetch is blocked |
 | DividendData | Clean price, yield to maturity | `https://www.dividenddata.co.uk/uk-gilts-prices-yields.py` | Fetched live automatically |
-| DMO D10B XLS | Retail purchase/sale dirty prices | `https://www.dmo.gov.uk/data/gilt-market/purchase-and-sale-service/` | Download daily file manually |
+| DMO D10B XLS | Retail purchase/sale dirty prices | `https://www.dmo.gov.uk/data/pdfdatareport?reportCode=D10B` | Select date, click Excel, save to data/ |
 
 ### Source architecture
 
@@ -241,22 +249,26 @@ python main.py export-xml-with-quotes ./data/d1a.xml [--output OUTPUT] [--nomina
 **Standard workflow.** Parses a locally saved D1A XML file, fetches live prices and yields from DividendData, parses a locally saved D10B XLS file, and produces a fully populated workbook including the **Approx Retail Ask Yield %** column.
 
 ```bash
-python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/YYYYMMDD - DMO Gilt Purchase and Sale Service Prices.xls" [--output OUTPUT] [--nominal-amount AMOUNT]
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml [D10B_PATH] [--output OUTPUT] [--nominal-amount AMOUNT]
 ```
 
 | Argument | Description |
 |---|---|
 | `XML_PATH` | Path to the locally saved D1A XML file |
-| `D10B_PATH` | Path to the locally saved D10B XLS file (use the actual dated filename) |
+| `D10B_PATH` | Optional. Path to the D10B XLS file. If omitted, the most recently modified matching file in `data/` is used automatically. |
 
 | Option | Default | Description |
 |---|---|---|
 | `--output` | `output/gilt_analysis.xlsx` | Path for the output workbook |
 | `--nominal-amount` | `10000` | Default holding size in £ |
 
-Example:
+Examples:
 
 ```bash
+# Auto-detect the D10B file (recommended)
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml --output ./output/gilt_analysis.xlsx
+
+# Explicit D10B path
 python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
 ```
 

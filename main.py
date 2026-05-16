@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -9,6 +10,20 @@ from app.excel_builder import build_workbook
 from app.tax_scenarios import DEFAULT_TAX_SCENARIOS
 
 cli = typer.Typer()
+
+_D10B_GLOB = "*DMO Gilt Purchase and Sale Service Prices*.xls*"
+
+
+def _find_latest_d10b(data_dir: Path = Path("data")) -> Path:
+    """Return the most recently modified D10B XLS file in data_dir, or raise."""
+    candidates = sorted(data_dir.glob(_D10B_GLOB), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        raise FileNotFoundError(
+            f"No D10B file found in {data_dir}/. "
+            "Download the daily XLS from https://www.dmo.gov.uk/data/pdfdatareport?reportCode=D10B "
+            "and save it to the data/ folder."
+        )
+    return candidates[0]
 
 
 @cli.command()
@@ -69,13 +84,19 @@ def export_xml_with_quotes(
 @cli.command("export-xml-with-quotes-and-retail-ask")
 def export_xml_with_quotes_and_retail_ask(
     xml_path: Path,
-    d10b_path: Path,
+    d10b_path: Optional[Path] = typer.Argument(
+        default=None,
+        help="Path to D10B XLS file. If omitted, the most recent file in data/ is used automatically.",
+    ),
     output: Path = Path("output/gilt_analysis.xlsx"),
     nominal_amount: int = 10_000,
 ) -> None:
+    resolved_d10b = d10b_path or _find_latest_d10b()
+    if d10b_path is None:
+        print(f"Auto-detected D10B file: {resolved_d10b}")
     rows = parse_d1a_xml(xml_path.read_text(encoding="utf-8"))
     enriched_rows = enrich_with_quotes(rows, DividendDataCollector().fetch())
-    retail_quotes = {quote.isin: quote for quote in parse_d10b_xls(d10b_path)}
+    retail_quotes = {quote.isin: quote for quote in parse_d10b_xls(resolved_d10b)}
     retail_ask_yields = {
         row.isin: float(
             approximate_retail_ask_yield(
