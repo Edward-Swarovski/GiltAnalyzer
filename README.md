@@ -23,18 +23,22 @@ Python tooling that fetches UK conventional gilt data from official sources, enr
 The tool produces an Excel workbook containing:
 
 - a clean copy of imported market data (prices, yields, maturities)
-- a user-editable inputs sheet (nominal amount, price and yield overrides)
-- three after-tax scenario columns (20%, 40%, 45% income tax on coupon)
+- a user-editable Inputs sheet (nominal amount per gilt, price and yield overrides)
+- three after-tax scenario columns (20%, 40%, 45% income tax on coupons)
 - approximate net cash gain to maturity under each scenario
 - an approximate retail ask yield derived from DMO retail sale dirty prices
+- three Summary sheets ranking gilts by yield, after-tax return, and multi-dimension best value
+- an Instructions sheet and a separate `gilt_knowledge.md` reference file
 
-Conventional UK gilt capital gains are modeled as **CGT-exempt**. Coupon income is taxed at the scenario rate. The workbook does **not** model personal allowances, the starting rate for savings, or any investor-specific tax position.
+Conventional UK gilt capital gains are modelled as **CGT-exempt**. Coupon income is taxed at the scenario rate. The workbook does **not** model personal allowances, the starting rate for savings, or any investor-specific tax position.
 
 ---
 
 ## Installation
 
 Requires Python 3.12 or later.
+
+### Windows (PowerShell)
 
 ```powershell
 # Create and activate a virtual environment
@@ -51,7 +55,24 @@ Verify:
 python main.py info
 ```
 
-Expected output:
+### Linux / macOS (bash)
+
+```bash
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+Verify:
+
+```bash
+python main.py info
+```
+
+Expected output (both platforms):
 
 ```
 Gilt Tax Analyzer
@@ -60,6 +81,8 @@ Configured tax scenarios:
 - Higher rate: 40%
 - Additional rate: 45%
 ```
+
+> **Linux note:** The output workbook is standard `.xlsx` format and opens in LibreOffice Calc as well as Excel. All formulas use `INDEX`/`MATCH`/`IFERROR` — no Excel-only functions are used.
 
 ---
 
@@ -78,7 +101,7 @@ https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A
 Save it as:
 
 ```
-data\d1a.xml
+data/d1a.xml
 ```
 
 > The DMO endpoint blocks automated scripts with an anti-bot page. Always save this file manually from a browser.
@@ -91,21 +114,27 @@ Go to the DMO Purchase and Sale Service prices page:
 https://www.dmo.gov.uk/data/gilt-market/purchase-and-sale-service/
 ```
 
-Download the daily XLS file (labelled with today's date) and save it to the `data\` folder, keeping the original filename, for example:
+Download the daily XLS file (labelled with today's date) and save it to the `data/` folder, keeping the original filename, for example:
 
 ```
-data\20260516 - DMO Gilt Purchase and Sale Service Prices.xls
+data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls
 ```
 
 > If today's D10B file shows "No information to display" (e.g. on a bank holiday), use the most recent available file instead.
 
 ### Step 3 — Generate the workbook
 
+**Windows:**
 ```powershell
 python main.py export-xml-with-quotes-and-retail-ask .\data\d1a.xml ".\data\20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output .\output\gilt_analysis.xlsx
 ```
 
-Replace the D10B filename with the actual file you downloaded. Open `output\gilt_analysis.xlsx` in Excel.
+**Linux / macOS:**
+```bash
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
+```
+
+Replace the D10B filename with the actual file you downloaded. Open `output/gilt_analysis.xlsx` in Excel or LibreOffice Calc.
 
 ---
 
@@ -148,7 +177,7 @@ The D10B file is date-stamped. If the DMO did not publish prices for a given day
 
 Prints the configured tax scenarios. Useful to confirm the environment is working.
 
-```powershell
+```bash
 python main.py info
 ```
 
@@ -158,7 +187,7 @@ python main.py info
 
 Attempts a **live** fetch of the DMO D1A XML, then generates a workbook with no price data (DMO D1A does not include prices). Unreliable due to anti-bot blocking — prefer `export-xml-with-quotes`.
 
-```powershell
+```bash
 python main.py export [--output OUTPUT] [--nominal-amount AMOUNT]
 ```
 
@@ -173,8 +202,8 @@ python main.py export [--output OUTPUT] [--nominal-amount AMOUNT]
 
 Parses a **locally saved** D1A XML file. Produces a workbook with gilt identity data but no prices or yields. Useful for testing the workbook structure.
 
-```powershell
-python main.py export-xml .\data\d1a.xml [--output OUTPUT] [--nominal-amount AMOUNT]
+```bash
+python main.py export-xml ./data/d1a.xml [--output OUTPUT] [--nominal-amount AMOUNT]
 ```
 
 | Argument | Description |
@@ -192,8 +221,8 @@ python main.py export-xml .\data\d1a.xml [--output OUTPUT] [--nominal-amount AMO
 
 Parses a locally saved D1A XML file, fetches live prices and yields from DividendData, and produces a priced workbook. The `Approx Retail Ask Yield %` column will be blank. Use `export-xml-with-quotes-and-retail-ask` for the full workflow.
 
-```powershell
-python main.py export-xml-with-quotes .\data\d1a.xml [--output OUTPUT] [--nominal-amount AMOUNT]
+```bash
+python main.py export-xml-with-quotes ./data/d1a.xml [--output OUTPUT] [--nominal-amount AMOUNT]
 ```
 
 | Argument | Description |
@@ -211,8 +240,8 @@ python main.py export-xml-with-quotes .\data\d1a.xml [--output OUTPUT] [--nomina
 
 **Standard workflow.** Parses a locally saved D1A XML file, fetches live prices and yields from DividendData, parses a locally saved D10B XLS file, and produces a fully populated workbook including the **Approx Retail Ask Yield %** column.
 
-```powershell
-python main.py export-xml-with-quotes-and-retail-ask .\data\d1a.xml ".\data\YYYYMMDD - DMO Gilt Purchase and Sale Service Prices.xls" [--output OUTPUT] [--nominal-amount AMOUNT]
+```bash
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/YYYYMMDD - DMO Gilt Purchase and Sale Service Prices.xls" [--output OUTPUT] [--nominal-amount AMOUNT]
 ```
 
 | Argument | Description |
@@ -227,13 +256,39 @@ python main.py export-xml-with-quotes-and-retail-ask .\data\d1a.xml ".\data\YYYY
 
 Example:
 
-```powershell
-python main.py export-xml-with-quotes-and-retail-ask .\data\d1a.xml ".\data\20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output .\output\gilt_analysis.xlsx
+```bash
+python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
 ```
 
 ---
 
 ## Workbook guide
+
+The workbook contains 8 sheets:
+
+| Sheet | Purpose | Editable? |
+|---|---|---|
+| Settings | Default nominal amount and tax scenario reference | Yes — change DefaultNominalAmount |
+| Market Data | Raw imported data | No |
+| Inputs | Per-gilt overrides | Yes |
+| Analysis | Formula-driven cash flow outputs | No |
+| Summary — Yield Ranking | All gilts sorted by effective yield | No (sort in Excel) |
+| Summary — After-tax Return | Sorted by annual net return @40% | No (sort in Excel) |
+| Summary — Best Value | Multi-dimension per-£10k comparison | No (sort in Excel) |
+| Instructions | How to use the workbook | No |
+
+---
+
+### Sheet: Settings
+
+Contains global configuration and tax scenario reference data.
+
+| Row | Setting | How to use |
+|---|---|---|
+| 2 | DefaultNominalAmount | Change this to set the default £ holding size for all gilts |
+| 5–7 | Tax scenario rates | Reference only — Analysis sheet uses hardcoded 20/40/45% |
+
+---
 
 ### Sheet: Market Data
 
@@ -260,32 +315,19 @@ Do not edit this sheet. Re-run the CLI to refresh it.
 
 | Column | Content | How to use |
 |---|---|---|
-| ISIN | Security identifier | Do not edit — used as the lookup key |
-| Nominal Amount (£) | Holding size in £ | Enter your intended holding size per gilt |
-| Override Price | Manual price | Leave blank to use the imported price; enter a value to override |
-| Override Yield % | Manual yield | Leave blank to use the imported yield; enter a value to override |
+| A | ISIN | Do not edit — lookup key |
+| B | Gilt Name | Do not edit — formula from Market Data |
+| C | Nominal Amount (£) | Leave blank to use Settings DefaultNominalAmount; enter a number to override for this gilt |
+| D | Override Price | Leave blank to use the imported price; enter a clean price to override |
+| E | Override Yield % | Leave blank to use the imported yield; enter a yield % to override |
 
 The Analysis sheet uses the override value when non-blank, otherwise falls back to the imported value.
 
 ---
 
-### Sheet: Tax Scenarios
-
-**User-editable.** Contains the three coupon tax rates used in analysis.
-
-| Column | Content |
-|---|---|
-| Scenario | Scenario label (Basic rate / Higher rate / Additional rate) |
-| Coupon Tax Rate | Rate as a decimal (e.g. 0.20) |
-| Notes | Disclaimer text |
-
-You can add rows for custom rates, but the Analysis sheet formulas are currently hard-coded to columns K, L, M (20%, 40%, 45%). Additional custom rates would require formula adjustments.
-
----
-
 ### Sheet: Analysis
 
-Formula-driven outputs. **Do not edit formula cells.** The only data entered here by Python is the ISIN, Gilt Name, Maturity, Coupon %, and (if available) the Approx Retail Ask Yield %.
+Formula-driven outputs. **Do not edit formula cells.**
 
 | Column | Content | Notes |
 |---|---|---|
@@ -295,33 +337,52 @@ Formula-driven outputs. **Do not edit formula cells.** The only data entered her
 | D | Coupon % | Static |
 | E | Effective Price | Formula: override if present, else imported |
 | F | Effective Yield % | Formula: override if present, else imported |
-| G | Approx Retail Ask Yield % | Static import from D10B — does **not** update when overrides change |
-| H | Nominal Amount (£) | Formula: looked up from Inputs sheet |
+| G | Approx Retail Ask Yield % | Static — from D10B at export time, does not update with overrides |
+| H | Nominal Amount (£) | Formula: Inputs col C, or Settings DefaultNominalAmount if blank |
 | I | Years to Maturity | Formula: YEARFRAC from valuation date |
 | J | Annual Coupon Cash (£) | Formula: Nominal × Coupon / 100 |
 | K | Capital Uplift to Par (£) | Formula: Nominal × (100 − Price) / 100 |
-| L | Approx Gross Cash Gain to Maturity (£) | Formula: (Annual coupon cash × Years) + Capital uplift |
-| M | Coupon Tax @20% (£) | Formula: annual coupon cash × years × 20% |
-| N | Coupon Tax @40% (£) | Formula: annual coupon cash × years × 40% |
-| O | Coupon Tax @45% (£) | Formula: annual coupon cash × years × 45% |
+| L | Approx Gross Cash Gain to Maturity (£) | Formula: (J × I) + K |
+| M | Coupon Tax @20% (£) | Formula: J × I × 20% |
+| N | Coupon Tax @40% (£) | Formula: J × I × 40% |
+| O | Coupon Tax @45% (£) | Formula: J × I × 45% |
 | P | CGT on Capital Gain (£) | Always zero — conventional gilt gains are CGT-exempt |
 | Q | Approx Net Cash Gain @20% (£) | L − M − P |
 | R | Approx Net Cash Gain @40% (£) | L − N − P |
 | S | Approx Net Cash Gain @45% (£) | L − O − P |
 
-All cash calculations are **approximate**. They do not model accrued interest, dirty price, exact coupon schedules, or reinvestment. They are useful for comparing gilts relative to each other, not for exact return projection.
+---
+
+### Sheets: Summary — Yield Ranking
+
+All gilts sorted by Effective Yield % descending. Effective yield is the annualised total return (coupon income + capital gain/loss) if bought today and held to maturity. It is **not** the cash received in year 1 — for year-1 income use the Coupon % column directly.
 
 ---
 
-### Sheet: Summary
+### Sheet: Summary — After-tax Return
 
-Currently a placeholder. A ranking dashboard is planned for a future phase.
+Sorted by Annual Net Return @40% descending. Shows gross and net gains at all three tax rates, plus annualised equivalents so short and long-dated gilts are comparable on a per-year basis. Sort by whichever Annual Net column matches your tax rate.
+
+---
+
+### Sheet: Summary — Best Value
+
+Unsorted multi-dimension view normalised to **per £10,000 nominal** so gilts are comparable regardless of holding size. Suggested sorts:
+
+| Sort column | Answers |
+|---|---|
+| Annual Net @40% per £10k | Best after-tax annual income (higher rate taxpayer) |
+| Annual Net @20% per £10k | Best after-tax annual income (basic rate taxpayer) |
+| Total Net @40% per £10k | Best total cash over full holding period |
+| Effective Yield % | Best annualised pre-tax return |
+| Capital Uplift to Par | Most tax-free capital gain locked in |
+| Years to Maturity | Filter by how long you are willing to hold |
 
 ---
 
 ## Tax scenario assumptions
 
-- Conventional UK gilt capital gains are **modeled as CGT-exempt** in all scenarios. Column P is always zero.
+- Conventional UK gilt capital gains are **modelled as CGT-exempt** in all scenarios. Column P is always zero.
 - Coupon income is taxed at the scenario rate applied to the total projected coupon cash over the holding period.
 - The model does **not** account for:
   - the personal savings allowance (£500 for higher-rate taxpayers, £1,000 for basic-rate)
@@ -340,17 +401,23 @@ Currently a placeholder. A ranking dashboard is planned for a future phase.
 | Approx Retail Ask Yield % is static | Derived from D10B at export time; does not update if you change price overrides in Excel |
 | Day count approximation | Retail ask yield uses days/365.25, not the exact Actual/Actual ICMA convention |
 | Live DMO fetch unreliable | Anti-bot protection blocks automated requests — always use the local XML workflow |
-| Summary sheet empty | Rankings and maturity-bucket views are not yet implemented |
 | No true ask-side feed | DividendData provides a mid/close yield, not a live dealer ask yield |
+| Summary sheets are static snapshots | Computed in Python at export time using the default nominal amount; per-gilt overrides in Inputs are not reflected in Summary sheets |
 
 ---
 
 ## Running tests
 
+**Windows:**
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests\ -v
 ```
 
-Expected: **23 passed**
+**Linux / macOS:**
+```bash
+python -m pytest tests/ -v
+```
+
+Expected: **31 passed**
 
 The test `test_parse_d10b_xls_real_file` is automatically skipped if the real D10B file is not present at `data/20260515 - DMO Gilt Purchase and Sale Service Prices.xls`. All other tests are self-contained and run without any external files.
