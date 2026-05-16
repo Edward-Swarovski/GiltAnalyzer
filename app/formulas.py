@@ -55,3 +55,7 @@ def cgt_on_conventional_gilt_capital_gain(_: int) -> str:
 
 def approx_net_cash_gain(row: int, tax_column: str) -> str:
     return f"=L{row}-{tax_column}{row}-P{row}"
+
+
+def annual_net_gain(row: int, net_column: str) -> str:
+    return f"=IFERROR({net_column}{row}/I{row},\"\")"

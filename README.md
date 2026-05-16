@@ -285,7 +285,6 @@ The workbook contains 8 sheets:
 | Inputs | Per-gilt overrides | Yes |
 | Analysis | Formula-driven cash flow outputs | No |
 | Summary — Yield Ranking | All gilts sorted by effective yield | No (sort in Excel) |
-| Summary — After-tax Return | Sorted by annual net return @40% | No (sort in Excel) |
 | Summary — Best Value | Multi-dimension per-£10k comparison | No (sort in Excel) |
 | Instructions | How to use the workbook | No |
 
@@ -362,18 +361,15 @@ Formula-driven outputs. **Do not edit formula cells.**
 | Q | Approx Net Cash Gain @20% (£) | L − M − P |
 | R | Approx Net Cash Gain @40% (£) | L − N − P |
 | S | Approx Net Cash Gain @45% (£) | L − O − P |
+| T | Annual Net @20% (£) | Q ÷ I — net gain per year at 20% tax; shown in **blue** |
+| U | Annual Net @40% (£) | R ÷ I — net gain per year at 40% tax; shown in **blue** |
+| V | Annual Net @45% (£) | S ÷ I — net gain per year at 45% tax; shown in **blue** |
 
 ---
 
 ### Sheets: Summary — Yield Ranking
 
 All gilts sorted by Effective Yield % descending. Effective yield is the annualised total return (coupon income + capital gain/loss) if bought today and held to maturity. It is **not** the cash received in year 1 — for year-1 income use the Coupon % column directly.
-
----
-
-### Sheet: Summary — After-tax Return
-
-Sorted by Annual Net Return @40% descending. Shows gross and net gains at all three tax rates, plus annualised equivalents so short and long-dated gilts are comparable on a per-year basis. Sort by whichever Annual Net column matches your tax rate.
 
 ---
 

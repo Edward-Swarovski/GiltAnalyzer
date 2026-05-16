@@ -26,7 +26,6 @@ def test_workbook_has_expected_sheets() -> None:
         "Inputs",
         "Analysis",
         "Summary — Yield Ranking",
-        "Summary — After-tax Return",
         "Summary — Best Value",
         "Instructions",
     ]
@@ -44,6 +43,9 @@ def test_analysis_sheet_contains_formulas() -> None:
     assert analysis["Q2"].value == "=L2-M2-P2"
     assert analysis["R2"].value == "=L2-N2-P2"
     assert analysis["S2"].value == "=L2-O2-P2"
+    assert analysis["T2"].value == '=IFERROR(Q2/I2,"")'
+    assert analysis["U2"].value == '=IFERROR(R2/I2,"")'
+    assert analysis["V2"].value == '=IFERROR(S2/I2,"")'
 
 
 def test_settings_sheet_has_default_nominal_amount() -> None:
@@ -95,15 +97,11 @@ def test_summary_yield_ranking_sorted_by_yield() -> None:
     assert sheet["A2"].value == "0.125% Treasury Gilt 2028"
 
 
-def test_summary_aftertax_has_net_gain_columns() -> None:
-    workbook = build_workbook([sample_row()])
-    sheet = workbook["Summary — After-tax Return"]
-    headers = [sheet.cell(1, c).value for c in range(1, 12)]
-    assert "Net Gain @40% (£)" in headers
-
 
 def test_summary_bestval_has_per_10k_columns() -> None:
     workbook = build_workbook([sample_row()])
     sheet = workbook["Summary — Best Value"]
-    headers = [sheet.cell(1, c).value for c in range(1, 14)]
-    assert "Annual Net Return @40% per £10k" in headers
+    headers = [sheet.cell(1, c).value for c in range(1, 18)]
+    assert "Annual Net @40% per £10k nominal" in headers
+    assert "Annual Net @40% per £10k cash invested" in headers
+    assert "Cash Invested per £10k nominal (£)" in headers

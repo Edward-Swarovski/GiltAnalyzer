@@ -50,6 +50,9 @@ ANALYSIS_HEADERS = (
     "Approx Net Cash Gain @20% (£)",
     "Approx Net Cash Gain @40% (£)",
     "Approx Net Cash Gain @45% (£)",
+    "Annual Net @20% (£)",
+    "Annual Net @40% (£)",
+    "Annual Net @45% (£)",
 )
 
 
@@ -68,7 +71,6 @@ def build_workbook(
     inputs = workbook.create_sheet("Inputs")
     analysis = workbook.create_sheet("Analysis")
     summary_yield = workbook.create_sheet("Summary — Yield Ranking")
-    summary_aftertax = workbook.create_sheet("Summary — After-tax Return")
     summary_bestval = workbook.create_sheet("Summary — Best Value")
     instructions = workbook.create_sheet("Instructions")
 
@@ -86,7 +88,6 @@ def build_workbook(
 
     snapshots = _build_snapshots(materialized_rows, resolved_yields, default_nominal_amount)
     _populate_summary_yield(summary_yield, snapshots)
-    _populate_summary_aftertax(summary_aftertax, snapshots)
     _populate_summary_bestval(summary_bestval, snapshots)
 
     _populate_instructions(instructions)
@@ -101,7 +102,7 @@ def build_workbook(
 
 
 # Columns (1-based) whose values are £ amounts — formatted to 2 decimal places.
-_GBP_COLUMNS = (10, 11, 12, 13, 14, 15, 17, 18, 19)
+_GBP_COLUMNS = (10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22)
 _GBP_FORMAT = '£#,##0.00'
 _ANALYSIS_FONT_SIZE = 9
 
@@ -111,12 +112,21 @@ def _format_analysis(sheet: Worksheet, data_row_count: int) -> None:
     for cell in sheet[1]:
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-    # Font size + £ format on data rows
+    _BLUE = "0070C0"
+    _ANNUAL_NET_COLS = (20, 21, 22)  # T, U, V
+
+    # Word-wrap + blue header for Annual Net columns
+    for col in _ANNUAL_NET_COLS:
+        sheet.cell(1, col).font = Font(bold=True, color=_BLUE)
+
+    # Font size + £ format on data rows; blue for Annual Net columns
     for r in range(2, data_row_count + 2):
         for cell in sheet[r]:
             cell.font = Font(size=_ANALYSIS_FONT_SIZE)
         for col in _GBP_COLUMNS:
             sheet.cell(r, col).number_format = _GBP_FORMAT
+        for col in _ANNUAL_NET_COLS:
+            sheet.cell(r, col).font = Font(size=_ANALYSIS_FONT_SIZE, color=_BLUE)
 
     # Print: fit all columns onto 1 page wide, portrait, landscape if needed
     sheet.page_setup.fitToPage = True
@@ -200,6 +210,9 @@ def _populate_analysis(
         sheet.cell(excel_row, 17, formulas.approx_net_cash_gain(excel_row, "M"))
         sheet.cell(excel_row, 18, formulas.approx_net_cash_gain(excel_row, "N"))
         sheet.cell(excel_row, 19, formulas.approx_net_cash_gain(excel_row, "O"))
+        sheet.cell(excel_row, 20, formulas.annual_net_gain(excel_row, "Q"))
+        sheet.cell(excel_row, 21, formulas.annual_net_gain(excel_row, "R"))
+        sheet.cell(excel_row, 22, formulas.annual_net_gain(excel_row, "S"))
 
 
 @dataclass(frozen=True)
@@ -211,6 +224,7 @@ class _GiltSnapshot:
     effective_yield: float | None
     retail_ask_yield: float | None
     nominal: float
+    price: float | None      # clean price per £100 nominal
     years: float
     annual_coupon: float
     capital_uplift: float
@@ -220,12 +234,30 @@ class _GiltSnapshot:
     net_45: float
 
 
+def _yearfrac(start: datetime.date, end: datetime.date) -> float:
+    """Actual/Actual year fraction matching Excel YEARFRAC(start, end, 1).
+
+    Excel averages the days-per-year across every calendar year the period
+    touches (including the partial end year), then divides actual days by that
+    average.  Formula: days / mean(diy for y in start.year..end.year inclusive)
+    """
+    if start >= end:
+        return 0.0
+    days = (end - start).days
+
+    def _diy(y: int) -> int:
+        return 366 if (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)) else 365
+
+    years_touched = list(range(start.year, end.year + 1))
+    avg_diy = sum(_diy(y) for y in years_touched) / len(years_touched)
+    return days / avg_diy
+
+
 def _build_snapshots(
     rows: list[GiltMarketRow],
     retail_ask_yields: dict[str, float],
     default_nominal_amount: int,
 ) -> list[_GiltSnapshot]:
-    today = datetime.date.today()
     snapshots = []
     for row in rows:
         nominal = float(default_nominal_amount)
@@ -233,8 +265,8 @@ def _build_snapshots(
         eff_yield = float(row.imported_yield) if row.imported_yield is not None else None
         coupon_pct = float(row.coupon_rate)
 
-        days = (row.maturity_date - today).days
-        years = days / 365.25 if days > 0 else 0.0
+        # Use the D1A valuation date — matches the YEARFRAC start date in Analysis col I
+        years = _yearfrac(row.valuation_date, row.maturity_date)
 
         annual_coupon = nominal * coupon_pct / 100
         capital_uplift = nominal * (100 - price) / 100 if price is not None else 0.0
@@ -252,6 +284,7 @@ def _build_snapshots(
             effective_yield=eff_yield,
             retail_ask_yield=retail_ask_yields.get(row.isin),
             nominal=nominal,
+            price=price,
             years=years,
             annual_coupon=annual_coupon,
             capital_uplift=capital_uplift,
@@ -301,61 +334,53 @@ def _populate_summary_yield(sheet: Worksheet, snapshots: list[_GiltSnapshot]) ->
     _format_summary_sheet(sheet, len(sorted_rows), gbp_cols=(6,))
 
 
-def _populate_summary_aftertax(sheet: Worksheet, snapshots: list[_GiltSnapshot]) -> None:
-    headers = (
-        "Gilt Name", "Maturity", "Years to Maturity", "Nominal Amount (£)",
-        "Gross Cash Gain (£)",
-        "Net Gain @20% (£)", "Net Gain @40% (£)", "Net Gain @45% (£)",
-        "Annual Net @20% (£)", "Annual Net @40% (£)", "Annual Net @45% (£)",
-    )
-    _write_summary_headers(sheet, headers)
-    sorted_rows = sorted(
-        snapshots,
-        key=lambda s: (s.net_40 / s.years) if s.years > 0 else 0.0,
-        reverse=True,
-    )
-    for s in sorted_rows:
-        ann_net_20 = s.net_20 / s.years if s.years > 0 else 0.0
-        ann_net_40 = s.net_40 / s.years if s.years > 0 else 0.0
-        ann_net_45 = s.net_45 / s.years if s.years > 0 else 0.0
-        sheet.append((
-            s.gilt_name, s.maturity, round(s.years, 2), s.nominal,
-            s.gross_gain, s.net_20, s.net_40, s.net_45,
-            ann_net_20, ann_net_40, ann_net_45,
-        ))
-    _format_summary_sheet(sheet, len(sorted_rows), gbp_cols=(4, 5, 6, 7, 8, 9, 10, 11))
-
-
 def _populate_summary_bestval(sheet: Worksheet, snapshots: list[_GiltSnapshot]) -> None:
     headers = (
         "Gilt Name", "Maturity", "Years to Maturity",
         "Effective Yield %", "Retail Ask Yield %", "Coupon %",
-        "Capital Uplift to Par (£)",
-        "Annual Net Return @20% per £10k",
-        "Annual Net Return @40% per £10k",
-        "Annual Net Return @45% per £10k",
-        "Total Net Return @20% per £10k",
-        "Total Net Return @40% per £10k",
-        "Total Net Return @45% per £10k",
+        "Cash Invested per £10k nominal (£)",
+        "Capital Uplift to Par (£) per £10k nominal",
+        "Annual Net @20% per £10k nominal",
+        "Annual Net @40% per £10k nominal",
+        "Annual Net @45% per £10k nominal",
+        "Annual Net @20% per £10k cash invested",
+        "Annual Net @40% per £10k cash invested",
+        "Annual Net @45% per £10k cash invested",
+        "Total Net @20% per £10k nominal",
+        "Total Net @40% per £10k nominal",
+        "Total Net @45% per £10k nominal",
     )
     _write_summary_headers(sheet, headers)
     # Unsorted — user can sort by any column in Excel
     for s in snapshots:
-        scale = 10_000 / s.nominal if s.nominal else 1.0
-        ann_20 = (s.net_20 / s.years * scale) if s.years > 0 else 0.0
-        ann_40 = (s.net_40 / s.years * scale) if s.years > 0 else 0.0
-        ann_45 = (s.net_45 / s.years * scale) if s.years > 0 else 0.0
-        tot_20 = s.net_20 * scale
-        tot_40 = s.net_40 * scale
-        tot_45 = s.net_45 * scale
+        nom_scale = 10_000 / s.nominal if s.nominal else 1.0
+        # Cash actually spent to acquire £10k nominal at the market price
+        cash_invested = s.price * 100 if s.price is not None else None
+        # Scale from cash invested to per-£10k-cash-invested
+        cash_scale = (10_000 / cash_invested) if cash_invested else None
+
+        ann_20_nom = (s.net_20 / s.years * nom_scale) if s.years > 0 else 0.0
+        ann_40_nom = (s.net_40 / s.years * nom_scale) if s.years > 0 else 0.0
+        ann_45_nom = (s.net_45 / s.years * nom_scale) if s.years > 0 else 0.0
+
+        ann_20_cash = (ann_20_nom * cash_scale) if cash_scale else None
+        ann_40_cash = (ann_40_nom * cash_scale) if cash_scale else None
+        ann_45_cash = (ann_45_nom * cash_scale) if cash_scale else None
+
+        tot_20 = s.net_20 * nom_scale
+        tot_40 = s.net_40 * nom_scale
+        tot_45 = s.net_45 * nom_scale
+
         sheet.append((
             s.gilt_name, s.maturity, round(s.years, 2),
             s.effective_yield, s.retail_ask_yield, s.coupon_pct,
-            s.capital_uplift * scale,
-            ann_20, ann_40, ann_45,
+            cash_invested,
+            s.capital_uplift * nom_scale,
+            ann_20_nom, ann_40_nom, ann_45_nom,
+            ann_20_cash, ann_40_cash, ann_45_cash,
             tot_20, tot_40, tot_45,
         ))
-    _format_summary_sheet(sheet, len(snapshots), gbp_cols=(7, 8, 9, 10, 11, 12, 13))
+    _format_summary_sheet(sheet, len(snapshots), gbp_cols=(7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17))
 
 
 _INSTRUCTIONS = (
@@ -410,27 +435,47 @@ _INSTRUCTIONS = (
     ("Higher yield often means longer maturity or lower price — use with the other summary", False),
     ("  sheets to understand the full picture.", False),
     ("", False),
-    ("Summary — After-tax Return", True),
-    ("Shows the actual cash you keep after income tax on coupons, sorted by Annual Net @40%.", False),
-    ("Gross Cash Gain = all coupon payments over the holding period + capital uplift to £100 par.", False),
-    ("Net Gain @20/40/45% = Gross Gain minus income tax on coupons at that rate.", False),
-    ("  Capital gains on conventional gilts are always CGT-exempt, so only coupons are taxed.", False),
-    ("Annual Net = Net Gain divided by Years to Maturity — this makes short and long-dated", False),
-    ("  gilts directly comparable on a per-year basis.", False),
-    ("Sort by whichever Annual Net column matches your tax rate to find the best after-tax", False),
-    ("  annual return for your situation.", False),
+    ("Annual Net columns in Analysis (columns T, U, V — shown in blue)", True),
+    ("Annual Net @20/40/45% = Approx Net Cash Gain ÷ Years to Maturity.", False),
+    ("This is the single most useful comparison figure — it tells you how much cash you keep", False),
+    ("  per year, after income tax on coupons, normalised for duration.", False),
+    ("Without dividing by years, longer-dated gilts always appear to return more in total —", False),
+    ("  but a 30-year gilt at £400/year is worse than a 2-year gilt at £450/year.", False),
+    ("Sort the Analysis sheet by column U (Annual Net @40%) to rank all gilts by after-tax", False),
+    ("  annual return for a higher-rate taxpayer. Use T or V for basic/additional rate.", False),
+    ("These columns update live when you change Nominal Amount or Override Price in Inputs.", False),
     ("", False),
     ("Summary — Best Value", True),
     ("An unsorted multi-dimension view — sort any column to answer a specific question.", False),
-    ("All cash figures are normalised to per £10,000 nominal so gilts are directly comparable", False),
-    ("  regardless of how much you invest.", False),
-    ("Suggested sorts:", False),
-    ("  Annual Net @40% per £10k  — best after-tax income per year (higher rate taxpayer)", False),
-    ("  Annual Net @20% per £10k  — best after-tax income per year (basic rate taxpayer)", False),
-    ("  Total Net @40% per £10k   — best total cash over the full holding period", False),
-    ("  Effective Yield %          — best annualised return pre-tax", False),
-    ("  Capital Uplift to Par      — most capital gain locked in (all tax-free)", False),
-    ("  Years to Maturity          — filter by how long you are willing to hold", False),
+    ("", False),
+    ("Understanding the two sets of 'per £10k' columns:", True),
+    ("  Per £10k NOMINAL: based on £10,000 face value. But gilts trade below par, so you", False),
+    ("    spend LESS than £10,000 to acquire £10,000 nominal.", False),
+    ("    Example: at price £93.20, you spend £9,320 to buy £10,000 nominal.", False),
+    ("  Per £10k CASH INVESTED: based on £10,000 actually spent. This is the true return", False),
+    ("    on capital deployed — how much after-tax cash per year for every £10,000 you hand over.", False),
+    ("", False),
+    ("Which column to use:", False),
+    ("  Use 'per £10k cash invested' to compare gilts fairly — this is the correct measure", False),
+    ("    of return on money actually spent, accounting for the fact that discount gilts", False),
+    ("    (price < 100) cost less to buy than their nominal value.", False),
+    ("  Use 'per £10k nominal' only if you are targeting a specific nominal holding size.", False),
+    ("", False),
+    ("Cash Invested per £10k nominal = Effective Price × 100", False),
+    ("  e.g. price 93.20 → you spend £9,320 to hold £10,000 nominal.", False),
+    ("", False),
+    ("Suggested sorts (higher rate taxpayer example):", False),
+    ("  Annual Net @40% per £10k cash invested  — best return on money actually spent (recommended)", False),
+    ("  Annual Net @40% per £10k nominal        — best return on nominal holding size", False),
+    ("  Capital Uplift to Par per £10k nominal  — most tax-free capital gain locked in", False),
+    ("  Effective Yield %                        — best annualised pre-tax return", False),
+    ("  Years to Maturity                        — filter by how long you are willing to hold", False),
+    ("", False),
+    ("Step-by-step workflow:", False),
+    ("  1. Sort 'Annual Net @40% per £10k cash invested' descending (or 20%/45% for your rate)", False),
+    ("  2. Filter 'Years to Maturity' to your preferred holding window", False),
+    ("  3. Among similarly-ranked gilts, prefer higher 'Capital Uplift' — that gain is CGT-exempt", False),
+    ("  4. Check 'Cash Invested per £10k nominal' to understand how much you actually spend", False),
     ("", False),
     ("Selling before maturity", True),
     ("You do not have to hold a gilt to maturity. If you sell early:", False),
