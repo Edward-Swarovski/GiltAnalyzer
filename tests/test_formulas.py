@@ -9,13 +9,12 @@ def test_effective_price_formula() -> None:
     )
 
 
-def test_cgt_formula_is_zero() -> None:
-    assert formulas.cgt_on_conventional_gilt_capital_gain(2) == "=0"
+def test_net_gain_formula_no_longer_subtracts_cgt() -> None:
+    assert formulas.approx_net_cash_gain(2, "M") == "=L2-M2"
 
 
-def test_net_gain_formula_references_tax_and_cgt_columns() -> None:
-    assert formulas.approx_net_cash_gain(2, "M") == "=L2-M2-P2"
-
+def test_annual_net_gain_formula() -> None:
+    assert formulas.annual_net_gain(2, "P") == '=IFERROR(P2/I2,"")'
 
 
 def test_nominal_amount_formula_falls_back_to_settings() -> None:

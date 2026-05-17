@@ -27,7 +27,7 @@ The tool produces an Excel workbook containing:
 - three after-tax scenario columns (20%, 40%, 45% income tax on coupons)
 - approximate net cash gain to maturity under each scenario
 - an approximate retail ask yield derived from DMO retail sale dirty prices
-- three Summary sheets ranking gilts by yield, after-tax return, and multi-dimension best value
+- Annual Net columns (S/T/U) showing after-tax annual return normalised for duration, shown in blue
 - an Instructions sheet and a separate `gilt_knowledge.md` reference file
 
 Conventional UK gilt capital gains are modelled as **CGT-exempt**. Coupon income is taxed at the scenario rate. The workbook does **not** model personal allowances, the starting rate for savings, or any investor-specific tax position.
@@ -276,16 +276,14 @@ python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/2026
 
 ## Workbook guide
 
-The workbook contains 8 sheets:
+The workbook contains 5 sheets:
 
 | Sheet | Purpose | Editable? |
 |---|---|---|
 | Settings | Default nominal amount and tax scenario reference | Yes — change DefaultNominalAmount |
 | Market Data | Raw imported data | No |
 | Inputs | Per-gilt overrides | Yes |
-| Analysis | Formula-driven cash flow outputs | No |
-| Summary — Yield Ranking | All gilts sorted by effective yield | No (sort in Excel) |
-| Summary — Best Value | Multi-dimension per-£10k comparison | No (sort in Excel) |
+| Analysis | Formula-driven cash flow outputs — sort and filter here | No |
 | Instructions | How to use the workbook | No |
 
 ---
@@ -358,33 +356,21 @@ Formula-driven outputs. **Do not edit formula cells.**
 | N | Coupon Tax @40% (£) | Formula: J × I × 40% |
 | O | Coupon Tax @45% (£) | Formula: J × I × 45% |
 | P | CGT on Capital Gain (£) | Always zero — conventional gilt gains are CGT-exempt |
-| Q | Approx Net Cash Gain @20% (£) | L − M − P |
-| R | Approx Net Cash Gain @40% (£) | L − N − P |
-| S | Approx Net Cash Gain @45% (£) | L − O − P |
+| P | Approx Net Cash Gain @20% (£) | L − M |
+| Q | Approx Net Cash Gain @40% (£) | L − N |
+| R | Approx Net Cash Gain @45% (£) | L − O |
+| S | Annual Net @20% (£) | P ÷ I — net gain per year at 20% tax; shown in **blue** |
+| T | Annual Net @40% (£) | Q ÷ I — net gain per year at 40% tax; shown in **blue** |
+| U | Annual Net @45% (£) | R ÷ I — net gain per year at 45% tax; shown in **blue** |
+
+> CGT column removed — conventional gilt capital gains are always exempt, so it added no information.
+
+**Annual Net columns (S/T/U)** are the primary comparison metric. Dividing by Years to Maturity normalises for duration — a 2-year gilt at £450/year ranks correctly above a 30-year gilt at £400/year. **Sort column T descending for a higher-rate taxpayer ranking.** Use S (20%) or U (45%) for other rates. These columns update live when you change Nominal Amount or Override Price in Inputs.
 | T | Annual Net @20% (£) | Q ÷ I — net gain per year at 20% tax; shown in **blue** |
 | U | Annual Net @40% (£) | R ÷ I — net gain per year at 40% tax; shown in **blue** |
 | V | Annual Net @45% (£) | S ÷ I — net gain per year at 45% tax; shown in **blue** |
 
 ---
-
-### Sheets: Summary — Yield Ranking
-
-All gilts sorted by Effective Yield % descending. Effective yield is the annualised total return (coupon income + capital gain/loss) if bought today and held to maturity. It is **not** the cash received in year 1 — for year-1 income use the Coupon % column directly.
-
----
-
-### Sheet: Summary — Best Value
-
-Unsorted multi-dimension view normalised to **per £10,000 nominal** so gilts are comparable regardless of holding size. Suggested sorts:
-
-| Sort column | Answers |
-|---|---|
-| Annual Net @40% per £10k | Best after-tax annual income (higher rate taxpayer) |
-| Annual Net @20% per £10k | Best after-tax annual income (basic rate taxpayer) |
-| Total Net @40% per £10k | Best total cash over full holding period |
-| Effective Yield % | Best annualised pre-tax return |
-| Capital Uplift to Par | Most tax-free capital gain locked in |
-| Years to Maturity | Filter by how long you are willing to hold |
 
 ---
 
@@ -426,6 +412,6 @@ Unsorted multi-dimension view normalised to **per £10,000 nominal** so gilts ar
 python -m pytest tests/ -v
 ```
 
-Expected: **31 passed**
+Expected: **28 passed**
 
 The test `test_parse_d10b_xls_real_file` is automatically skipped if the real D10B file is not present at `data/20260515 - DMO Gilt Purchase and Sale Service Prices.xls`. All other tests are self-contained and run without any external files.

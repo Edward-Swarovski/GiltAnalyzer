@@ -60,7 +60,7 @@ DMO D10B XLS (saved locally) ->  parse_d10b_xls()      ->  dict[isin, retail_ask
 
 ### Workbook structure
 
-The Analysis sheet has 22 columns (A–V). Column letters are hardcoded in `formulas.py`. If columns are added or reordered, formula strings and test assertions in `test_excel_builder.py` must both be updated.
+The Analysis sheet has 21 columns (A–U). Column letters are hardcoded in `formulas.py`. If columns are added or reordered, formula strings and test assertions in `test_excel_builder.py` must both be updated.
 
 | Key columns | Letter |
 |---|---|
@@ -69,9 +69,9 @@ The Analysis sheet has 22 columns (A–V). Column letters are hardcoded in `form
 | Years to Maturity | I |
 | Annual Coupon Cash | J |
 | Capital Uplift to Par | K |
-| CGT (always =0) | P |
-| Net @20/40/45% | Q/R/S |
-| Annual Net @20/40/45% | T/U/V |
+| Coupon Tax @20/40/45% | M/N/O |
+| Net @20/40/45% | P/Q/R |
+| Annual Net @20/40/45% | S/T/U |
 
 ### Input files (not committed)
 

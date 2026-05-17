@@ -49,12 +49,8 @@ def coupon_tax(row: int, tax_rate: str) -> str:
     return f"=J{row}*I{row}*{tax_rate}"
 
 
-def cgt_on_conventional_gilt_capital_gain(_: int) -> str:
-    return "=0"
-
-
 def approx_net_cash_gain(row: int, tax_column: str) -> str:
-    return f"=L{row}-{tax_column}{row}-P{row}"
+    return f"=L{row}-{tax_column}{row}"
 
 
 def annual_net_gain(row: int, net_column: str) -> str:

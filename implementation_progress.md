@@ -4,7 +4,7 @@
 
 A fully working retail gilt analysis tool. Generates a multi-sheet Excel workbook from two daily DMO files plus a live price feed.
 
-Current automated test status: **30 passed**
+Current automated test status: **28 passed**
 
 Current working command:
 
@@ -41,21 +41,19 @@ Merged rows
 
 ---
 
-## Workbook Structure (8 sheets)
+## Workbook Structure (5 sheets)
 
 | Sheet | Purpose | Editable |
 |---|---|---|
 | Settings | DefaultNominalAmount control cell + tax scenario reference | Yes |
 | Market Data | Raw imported values (ISIN, price, yield, maturity, source) | No |
 | Inputs | Per-gilt overrides: nominal amount, price, yield | Yes |
-| Analysis | 22-column formula-driven cash flow outputs | No |
-| Summary — Yield Ranking | All gilts sorted by Effective Yield % desc | No (sort in Excel) |
-| Summary — Best Value | Multi-dimension per-£10k comparison (nominal and cash-invested) | No (sort in Excel) |
+| Analysis | 21-column formula-driven cash flow outputs — sort/filter here | No |
 | Instructions | How to use the workbook | No |
 
 ---
 
-## Analysis Sheet Columns (A–V)
+## Analysis Sheet Columns (A–U)
 
 | Col | Header | Type |
 |---|---|---|
@@ -74,13 +72,14 @@ Merged rows
 | M | Coupon Tax @20% (£) | Formula: J × I × 20% |
 | N | Coupon Tax @40% (£) | Formula: J × I × 40% |
 | O | Coupon Tax @45% (£) | Formula: J × I × 45% |
-| P | CGT on Capital Gain (£) | Always =0 (conventional gilts CGT-exempt) |
-| Q | Approx Net Cash Gain @20% (£) | Formula: L − M − P |
-| R | Approx Net Cash Gain @40% (£) | Formula: L − N − P |
-| S | Approx Net Cash Gain @45% (£) | Formula: L − O − P |
-| T | Annual Net @20% (£) | Formula: Q / I — shown in blue |
-| U | Annual Net @40% (£) | Formula: R / I — shown in blue |
-| V | Annual Net @45% (£) | Formula: S / I — shown in blue |
+| P | Approx Net Cash Gain @20% (£) | Formula: L − M |
+| Q | Approx Net Cash Gain @40% (£) | Formula: L − N |
+| R | Approx Net Cash Gain @45% (£) | Formula: L − O |
+| S | Annual Net @20% (£) | Formula: P / I — shown in blue |
+| T | Annual Net @40% (£) | Formula: Q / I — shown in blue |
+| U | Annual Net @45% (£) | Formula: R / I — shown in blue |
+
+CGT column removed — conventional gilt capital gains are always exempt, adding no analytical value.
 
 All formulas use `INDEX`/`MATCH`/`IFERROR` — `XLOOKUP` and `LET` excluded for Excel compatibility.
 
@@ -194,5 +193,7 @@ Results are scenarios for comparison, not personal tax advice.
 | `GiltRetailQuote` missing `coupon_rate` | Field added, derived from gilt name using same fraction-parsing logic |
 | Summary snapshots used `datetime.date.today()` | Fixed to use `row.valuation_date` (D1A close-of-business date) |
 | Python yearfrac didn't match Excel | Implemented exact Excel `YEARFRAC(basis=1)` algorithm |
-| Summary — After-tax Return was redundant | Removed — Annual Net columns T/U/V in Analysis sheet serve the same purpose more accurately |
-| Best Value normalised to nominal only | Added cash-invested columns — correct return-on-capital metric |
+| Summary — After-tax Return was redundant | Removed — Annual Net columns in Analysis serve the same purpose |
+| Summary — Yield Ranking was redundant | Removed — users sort Analysis col F directly |
+| Summary — Best Value was confusing | Removed — Analysis sheet with sort/filter is cleaner |
+| CGT column P was always =0 | Removed — conventional gilt gains are always CGT-exempt |
