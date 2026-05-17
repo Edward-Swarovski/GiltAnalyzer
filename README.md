@@ -2,6 +2,8 @@
 
 Python tooling that fetches UK conventional gilt data from official sources, enriches it with live market prices, and produces an Excel workbook for after-tax scenario analysis.
 
+**Repository:** `https://github.com/Edward-Swarovski/GiltAnalyzer.git`
+
 ---
 
 ## Contents
@@ -36,37 +38,32 @@ Conventional UK gilt capital gains are modelled as **CGT-exempt**. Coupon income
 
 ## Installation
 
-Requires Python 3.12 or later.
+Requires Python 3.12 or later and Git.
 
-### Windows (PowerShell)
-
-```powershell
-# Create and activate a virtual environment
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-Verify:
-
-```powershell
-python main.py info
-```
-
-### Linux / macOS (bash)
+### Step 1 — Clone the repository
 
 ```bash
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/Edward-Swarovski/GiltAnalyzer.git
+cd GiltAnalyzer
+```
 
-# Install dependencies
+### Step 2 — Create environment and install dependencies
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Verify:
+**Linux / macOS:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Step 3 — Verify
 
 ```bash
 python main.py info
@@ -397,6 +394,20 @@ Formula-driven outputs. **Do not edit formula cells.**
 | Live DMO fetch unreliable | Anti-bot protection blocks automated requests — always use the local XML workflow |
 | No true ask-side feed | DividendData provides a mid/close yield, not a live dealer ask yield |
 | Summary sheets are static snapshots | Computed in Python at export time using the default nominal amount; per-gilt overrides in Inputs are not reflected in Summary sheets |
+
+---
+
+## Getting updates
+
+When new changes are published to GitHub:
+
+```bash
+cd GiltAnalyzer
+git pull
+pip install -r requirements.txt
+```
+
+The `pip install` step is only needed if `requirements.txt` changed. It is safe to run every time.
 
 ---
 
