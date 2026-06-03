@@ -83,43 +83,67 @@ Configured tax scenarios:
 
 ---
 
-## Quick start
+## Daily workflow
 
-The standard workflow requires two files downloaded from the DMO website each day.
+> **Must run on a home/office PC with a residential internet connection.**
+> The DMO website and DividendData both block requests from cloud server IPs (e.g. Zo computer).
+> Steps 1 and 2 are manual — the DMO website uses bot-detection (ShieldSquare + hCaptcha) that
+> cannot be bypassed by any script regardless of the machine. Step 3 is fully automated.
 
-### Step 1 — Download the DMO D1A XML
+### Daily checklist
 
-Go to the DMO gilt data page and save the D1A report as a `.xml` file:
+- [ ] Download D1A XML → save as `data/d1a.xml`
+- [ ] Download D10B XLS → save to `data/` (keep original filename)
+- [ ] Activate venv and run export command
+- [ ] Open `output/gilt_analysis.xlsx`
+
+---
+
+### Step 1 — Download the DMO D1A XML (~10 seconds)
+
+Open this URL in a browser and save the page as an XML file:
 
 ```
 https://www.dmo.gov.uk/data/XmlDataReport?reportCode=D1A
 ```
 
-Save it as `data/d1a.xml`.
+Save it as:
+```
+data/d1a.xml
+```
 
-> The DMO uses bot-detection (ShieldSquare) that blocks automated script downloads. Always save this file manually from a browser.
+> **Why manual?** The DMO uses ShieldSquare bot-detection which blocks all automated script
+> downloads, even from residential IPs. There is no workaround — always use a browser.
 
-### Step 2 — Download the DMO D10B XLS
+---
 
-Go to the DMO Purchase and Sale Service prices page:
+### Step 2 — Download the DMO D10B XLS (~20 seconds)
+
+Open this URL in a browser:
 
 ```
 https://www.dmo.gov.uk/data/pdfdatareport?reportCode=D10B
 ```
 
-1. The page shows a date picker — today's date should be pre-selected
-2. Click the **Excel** button to download the XLS file
-3. Save it to the `data/` folder, keeping the original filename, for example:
+1. Today's date should be pre-selected in the date picker
+2. Click the **Excel** button
+3. Save the file to the `data/` folder, keeping the original filename:
 
 ```
-data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls
+data/20260603 - DMO Gilt Purchase and Sale Service Prices.xls
 ```
 
-> If today's file shows "No information to display" (e.g. on a bank holiday), pick the most recent business day from the date picker instead.
+> **If today's file shows "No information to display"** (bank holiday or non-business day),
+> select the most recent business day from the date picker instead.
 
-### Step 3 — Generate the workbook
+> **Why manual?** The D10B export is driven by JavaScript with no direct download URL.
+> The page is also protected by hCaptcha which requires human interaction to solve.
 
-Activate the virtual environment first, then run the export command.
+---
+
+### Step 3 — Generate the workbook (~30 seconds, fully automated)
+
+Activate the virtual environment, then run:
 
 **Windows (PowerShell):**
 ```powershell
@@ -133,13 +157,23 @@ source .venv/bin/activate
 python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml --output ./output/gilt_analysis.xlsx
 ```
 
-The D10B file is auto-detected from `data/` — no need to type the filename. If multiple D10B files are present, the most recently modified one is used. You can pass the path explicitly if needed:
+The tool automatically:
+- Fetches live gilt prices and yields from DividendData
+- Auto-detects the most recent D10B file in `data/`
+- Generates the fully populated workbook
 
-```powershell
-python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260516 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
+Expected output:
+```
+Auto-detected D10B file: data/20260603 - DMO Gilt Purchase and Sale Service Prices.xls
+Wrote 70 conventional gilts to output/gilt_analysis.xlsx with 70 retail ask-yield estimates
 ```
 
-Open `output/gilt_analysis.xlsx` in Excel or LibreOffice Calc.
+Open `output/gilt_analysis.xlsx` in Excel. If prompted with **Protected View**, click **Enable Editing** — this appears when opening files downloaded from the internet and is normal.
+
+> You can pass the D10B path explicitly if needed:
+> ```powershell
+> python main.py export-xml-with-quotes-and-retail-ask ./data/d1a.xml "./data/20260603 - DMO Gilt Purchase and Sale Service Prices.xls" --output ./output/gilt_analysis.xlsx
+> ```
 
 ---
 
