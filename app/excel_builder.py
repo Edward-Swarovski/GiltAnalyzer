@@ -52,6 +52,7 @@ ANALYSIS_HEADERS = (
     "Annual Net @20% (£)",
     "Annual Net @40% (£)",
     "Annual Net @45% (£)",
+    "Approx Accrued Interest (£)",
 )
 
 
@@ -98,7 +99,7 @@ def build_workbook(
 
 # Columns (1-based) whose values are £ amounts — formatted to 2 decimal places.
 # H=8(clean), I=9(dirty) are prices (not £ cash), J=10..Q=17 cash, R=18..T=20 net, U=21..W=23 annual net
-_GBP_COLUMNS = (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
+_GBP_COLUMNS = (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24)
 _GBP_FORMAT = '£#,##0.00'
 _ANALYSIS_FONT_SIZE = 9
 
@@ -212,6 +213,7 @@ def _populate_analysis(
         sheet.cell(excel_row, 21, formulas.annual_net_gain(excel_row, "R"))        # U = R / K
         sheet.cell(excel_row, 22, formulas.annual_net_gain(excel_row, "S"))        # V = S / K
         sheet.cell(excel_row, 23, formulas.annual_net_gain(excel_row, "T"))        # W = T / K
+        sheet.cell(excel_row, 24, formulas.accrued_interest(excel_row))            # X
 
 
 
@@ -290,6 +292,16 @@ _INSTRUCTIONS = (
     ("R  Approx Net Cash Gain @20% (£)   = N − O  [capital uplift is never taxed]", False),
     ("S  Approx Net Cash Gain @40% (£)   = N − P", False),
     ("T  Approx Net Cash Gain @45% (£)   = N − Q", False),
+    ("", False),
+    ("Approx Accrued Interest (col X)", True),
+    ("The interest that has built up since the last coupon payment date.", False),
+    ("Formula: (Nominal × Coupon% / 100 / 2) × (days since last coupon ÷ days in coupon period)", False),
+    ("Coupon payment dates are derived from the maturity date — UK gilts pay on the same", False),
+    ("  day and month as maturity, every 6 months (e.g. maturity Jan-31 → coupons Jan-31 and Jul-31).", False),
+    ("Updates automatically every day via TODAY() — no need to regenerate the workbook.", False),
+    ("This is an approximation using Actual/Actual day count.", False),
+    ("Why it matters: when you buy a gilt, you pay the dirty price = clean price + accrued interest.", False),
+    ("  The accrued interest is recovered when the next coupon is paid to you in full.", False),
     ("", False),
     ("Annual Net columns (U, V, W — shown in blue)", True),
     ("U  Annual Net @20% = R ÷ Years to Maturity", False),
