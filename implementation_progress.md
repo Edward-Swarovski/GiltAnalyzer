@@ -48,12 +48,12 @@ Merged rows
 | Settings | DefaultNominalAmount control cell + tax scenario reference | Yes |
 | Market Data | Raw imported values (ISIN, price, yield, maturity, source) | No |
 | Inputs | Per-gilt overrides: nominal amount, price, yield | Yes |
-| Analysis | 21-column formula-driven cash flow outputs — sort/filter here | No |
+| Analysis | 23-column formula-driven cash flow outputs — sort/filter here | No |
 | Instructions | How to use the workbook | No |
 
 ---
 
-## Analysis Sheet Columns (A–U)
+## Analysis Sheet Columns (A–W)
 
 | Col | Header | Type |
 |---|---|---|
@@ -61,25 +61,25 @@ Merged rows
 | B | Gilt Name | Static |
 | C | Maturity | Static |
 | D | Coupon % | Static |
-| E | Effective Price | Formula (override → imported) |
-| F | Effective Yield % | Formula (override → imported) |
-| G | Approx Retail Ask Yield % | Static import from D10B — does not update with overrides |
-| H | Nominal Amount (£) | Formula (Inputs col C → Settings DefaultNominalAmount) |
-| I | Years to Maturity | Formula: YEARFRAC(valuation_date, C, 1) |
-| J | Annual Coupon Cash (£) | Formula: H × D / 100 |
-| K | Capital Uplift to Par (£) | Formula: H × (100 − E) / 100 |
-| L | Approx Gross Cash Gain to Maturity (£) | Formula: J × I + K |
-| M | Coupon Tax @20% (£) | Formula: J × I × 20% |
-| N | Coupon Tax @40% (£) | Formula: J × I × 40% |
-| O | Coupon Tax @45% (£) | Formula: J × I × 45% |
-| P | Approx Net Cash Gain @20% (£) | Formula: L − M |
-| Q | Approx Net Cash Gain @40% (£) | Formula: L − N |
-| R | Approx Net Cash Gain @45% (£) | Formula: L − O |
-| S | Annual Net @20% (£) | Formula: P / I — shown in blue |
-| T | Annual Net @40% (£) | Formula: Q / I — shown in blue |
-| U | Annual Net @45% (£) | Formula: R / I — shown in blue |
-
-CGT column removed — conventional gilt capital gains are always exempt, adding no analytical value.
+| E | Effective Price | Formula (override → market mid price) |
+| F | Effective Yield % | Formula (override → market yield) |
+| G | Approx Retail Ask Yield % | Static from D10B dirty price — does not update with overrides |
+| H | DMO Retail Sale Clean Price | Static from D10B — N/A if no D10B loaded |
+| I | DMO Retail Sale Dirty Price | Static from D10B — actual settlement price; N/A if no D10B loaded |
+| J | Nominal Amount (£) | Formula (Inputs col C → Settings DefaultNominalAmount) |
+| K | Years to Maturity | Formula: YEARFRAC(valuation_date, C, 1) |
+| L | Annual Coupon Cash (£) | Formula: J × D / 100 |
+| M | Capital Uplift to Par (£) | Formula: J × (100 − E) / 100 — CGT-exempt |
+| N | Approx Gross Cash Gain to Maturity (£) | Formula: L × K + M |
+| O | Coupon Tax @20% (£) | Formula: L × K × 20% |
+| P | Coupon Tax @40% (£) | Formula: L × K × 40% |
+| Q | Coupon Tax @45% (£) | Formula: L × K × 45% |
+| R | Approx Net Cash Gain @20% (£) | Formula: N − O |
+| S | Approx Net Cash Gain @40% (£) | Formula: N − P |
+| T | Approx Net Cash Gain @45% (£) | Formula: N − Q |
+| U | Annual Net @20% (£) | Formula: R / K — shown in blue |
+| V | Annual Net @40% (£) | Formula: S / K — shown in blue |
+| W | Annual Net @45% (£) | Formula: T / K — shown in blue |
 
 All formulas use `INDEX`/`MATCH`/`IFERROR` — `XLOOKUP` and `LET` excluded for Excel compatibility.
 
@@ -197,3 +197,4 @@ Results are scenarios for comparison, not personal tax advice.
 | Summary — Yield Ranking was redundant | Removed — users sort Analysis col F directly |
 | Summary — Best Value was confusing | Removed — Analysis sheet with sort/filter is cleaner |
 | CGT column P was always =0 | Removed — conventional gilt gains are always CGT-exempt |
+| Added DMO retail sale prices | Cols H (clean) and I (dirty) added from D10B; N/A when D10B not loaded |

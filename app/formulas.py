@@ -34,24 +34,30 @@ def years_to_maturity(row: int) -> str:
 
 
 def annual_coupon_cash(row: int) -> str:
-    return f"=H{row}*D{row}/100"
+    # L(col12) = Nominal(J) * Coupon%(D) / 100
+    return f"=J{row}*D{row}/100"
 
 
 def capital_uplift_to_par(row: int) -> str:
-    return f"=H{row}*(100-E{row})/100"
+    # M(col13) = Nominal(J) * (100 - EffPrice(E)) / 100
+    return f"=J{row}*(100-E{row})/100"
 
 
 def approx_gross_cash_gain_to_maturity(row: int) -> str:
-    return f"=J{row}*I{row}+K{row}"
+    # N(col14) = AnnualCoupon(L) * Years(K) + CapitalUplift(M)
+    return f"=L{row}*K{row}+M{row}"
 
 
 def coupon_tax(row: int, tax_rate: str) -> str:
-    return f"=J{row}*I{row}*{tax_rate}"
+    # O/P/Q = AnnualCoupon(L) * Years(K) * rate
+    return f"=L{row}*K{row}*{tax_rate}"
 
 
 def approx_net_cash_gain(row: int, tax_column: str) -> str:
-    return f"=L{row}-{tax_column}{row}"
+    # R/S/T = GrossCashGain(N) - CouponTax(O/P/Q)
+    return f"=N{row}-{tax_column}{row}"
 
 
 def annual_net_gain(row: int, net_column: str) -> str:
-    return f"=IFERROR({net_column}{row}/I{row},\"\")"
+    # U/V/W = NetGain(R/S/T) / Years(K)
+    return f"=IFERROR({net_column}{row}/K{row},\"\")"

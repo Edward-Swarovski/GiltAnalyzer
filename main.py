@@ -114,6 +114,7 @@ def export_xml_with_quotes_and_retail_ask(
         enriched_rows,
         default_nominal_amount=nominal_amount,
         retail_ask_yields=retail_ask_yields,
+        retail_quotes=retail_quotes,
     )
     workbook.save(output)
     print(

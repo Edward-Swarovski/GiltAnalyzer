@@ -341,39 +341,38 @@ Formula-driven outputs. **Do not edit formula cells.**
 | B | Gilt Name | Static |
 | C | Maturity | Static |
 | D | Coupon % | Static |
-| E | Effective Price | Formula: override if present, else imported |
-| F | Effective Yield % | Formula: override if present, else imported |
-| G | Approx Retail Ask Yield % | Static — from D10B at export time, does not update with overrides |
-| H | Nominal Amount (£) | Formula: Inputs col C, or Settings DefaultNominalAmount if blank |
-| I | Years to Maturity | Formula: YEARFRAC from valuation date |
-| J | Annual Coupon Cash (£) | Formula: Nominal × Coupon / 100 |
-| K | Capital Uplift to Par (£) | Formula: Nominal × (100 − Price) / 100 |
-| L | Approx Gross Cash Gain to Maturity (£) | Formula: (J × I) + K |
-| M | Coupon Tax @20% (£) | Formula: J × I × 20% |
-| N | Coupon Tax @40% (£) | Formula: J × I × 40% |
-| O | Coupon Tax @45% (£) | Formula: J × I × 45% |
-| P | CGT on Capital Gain (£) | Always zero — conventional gilt gains are CGT-exempt |
-| P | Approx Net Cash Gain @20% (£) | L − M |
-| Q | Approx Net Cash Gain @40% (£) | L − N |
-| R | Approx Net Cash Gain @45% (£) | L − O |
-| S | Annual Net @20% (£) | P ÷ I — net gain per year at 20% tax; shown in **blue** |
-| T | Annual Net @40% (£) | Q ÷ I — net gain per year at 40% tax; shown in **blue** |
-| U | Annual Net @45% (£) | R ÷ I — net gain per year at 45% tax; shown in **blue** |
+| E | Effective Price | Formula: override if present, else market mid price |
+| F | Effective Yield % | Formula: override if present, else market yield |
+| G | Approx Retail Ask Yield % | Static — from D10B dirty price at export time; does not update with overrides |
+| H | DMO Retail Sale Clean Price | Static — from D10B; shows N/A if no D10B loaded |
+| I | DMO Retail Sale Dirty Price | Static — actual settlement price including accrued interest; shows N/A if no D10B loaded |
+| J | Nominal Amount (£) | Formula: Inputs col C, or Settings DefaultNominalAmount if blank |
+| K | Years to Maturity | Formula: YEARFRAC from valuation date |
+| L | Annual Coupon Cash (£) | Formula: J × D / 100 |
+| M | Capital Uplift to Par (£) | Formula: J × (100 − E) / 100 — CGT-exempt |
+| N | Approx Gross Cash Gain to Maturity (£) | Formula: L × K + M |
+| O | Coupon Tax @20% (£) | Formula: L × K × 20% |
+| P | Coupon Tax @40% (£) | Formula: L × K × 40% |
+| Q | Coupon Tax @45% (£) | Formula: L × K × 45% |
+| R | Approx Net Cash Gain @20% (£) | N − O |
+| S | Approx Net Cash Gain @40% (£) | N − P |
+| T | Approx Net Cash Gain @45% (£) | N − Q |
+| U | Annual Net @20% (£) | R ÷ K — net gain per year at 20% tax; shown in **blue** |
+| V | Annual Net @40% (£) | S ÷ K — net gain per year at 40% tax; shown in **blue** |
+| W | Annual Net @45% (£) | T ÷ K — net gain per year at 45% tax; shown in **blue** |
 
-> CGT column removed — conventional gilt capital gains are always exempt, so it added no information.
+**Annual Net columns (U/V/W)** are the primary comparison metric — after-tax cash per year, normalised for duration. **Sort column V descending for a higher-rate taxpayer ranking.** Use U (20%) or W (45%) for other rates. These columns update live when you change Nominal Amount or Override Price in Inputs.
 
-**Annual Net columns (S/T/U)** are the primary comparison metric. Dividing by Years to Maturity normalises for duration — a 2-year gilt at £450/year ranks correctly above a 30-year gilt at £400/year. **Sort column T descending for a higher-rate taxpayer ranking.** Use S (20%) or U (45%) for other rates. These columns update live when you change Nominal Amount or Override Price in Inputs.
-| T | Annual Net @20% (£) | Q ÷ I — net gain per year at 20% tax; shown in **blue** |
-| U | Annual Net @40% (£) | R ÷ I — net gain per year at 40% tax; shown in **blue** |
-| V | Annual Net @45% (£) | S ÷ I — net gain per year at 45% tax; shown in **blue** |
-
----
+**Price columns explained:**
+- **E (Effective Price):** market mid clean price from DividendData — the quoted price excluding accrued interest
+- **H (DMO Sale Clean Price):** DMO retail quoted price — slightly above market mid; not what you actually pay
+- **I (DMO Sale Dirty Price):** actual settlement amount = clean price + accrued interest — what leaves your account
 
 ---
 
 ## Tax scenario assumptions
 
-- Conventional UK gilt capital gains are **modelled as CGT-exempt** in all scenarios. Column P is always zero.
+- Conventional UK gilt capital gains are **modelled as CGT-exempt** — capital uplift (col M) is never taxed.
 - Coupon income is taxed at the scenario rate applied to the total projected coupon cash over the holding period.
 - The model does **not** account for:
   - the personal savings allowance (£500 for higher-rate taxpayers, £1,000 for basic-rate)

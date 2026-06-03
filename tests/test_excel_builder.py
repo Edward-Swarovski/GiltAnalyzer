@@ -35,16 +35,22 @@ def test_analysis_sheet_contains_formulas() -> None:
 
     assert analysis["E2"].value.startswith("=IFERROR(")
     assert analysis["F2"].value.startswith("=IFERROR(")
-    assert analysis["H2"].value.startswith("=IFERROR(")
-    assert "Settings!B:B" in analysis["H2"].value
-    # Net gain columns (P/Q/R) no longer subtract a CGT column
-    assert analysis["P2"].value == "=L2-M2"
-    assert analysis["Q2"].value == "=L2-N2"
-    assert analysis["R2"].value == "=L2-O2"
-    # Annual Net columns (S/T/U) — blue
-    assert analysis["S2"].value == '=IFERROR(P2/I2,"")'
-    assert analysis["T2"].value == '=IFERROR(Q2/I2,"")'
-    assert analysis["U2"].value == '=IFERROR(R2/I2,"")'
+    # DMO retail sale price columns
+    assert analysis["H1"].value == "DMO Retail Sale Clean Price"
+    assert analysis["I1"].value == "DMO Retail Sale Dirty Price"
+    assert analysis["H2"].value == "N/A"  # no retail_quotes passed in test
+    assert analysis["I2"].value == "N/A"
+    # Nominal amount now in col J
+    assert analysis["J2"].value.startswith("=IFERROR(")
+    assert "Settings!B:B" in analysis["J2"].value
+    # Net gain columns R/S/T
+    assert analysis["R2"].value == "=N2-O2"
+    assert analysis["S2"].value == "=N2-P2"
+    assert analysis["T2"].value == "=N2-Q2"
+    # Annual Net columns U/V/W — blue
+    assert analysis["U2"].value == '=IFERROR(R2/K2,"")'
+    assert analysis["V2"].value == '=IFERROR(S2/K2,"")'
+    assert analysis["W2"].value == '=IFERROR(T2/K2,"")'
 
 
 def test_settings_sheet_has_default_nominal_amount() -> None:
