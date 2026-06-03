@@ -37,7 +37,7 @@ def parse_quotes_html(html_text: str) -> list[GiltPriceQuote]:
     soup = BeautifulSoup(html_text, "html.parser")
     quotes: list[GiltPriceQuote] = []
 
-    for row in soup.select("table#main-table tbody tr"):
+    for row in soup.select("table tbody tr"):
         cells = [cell.get_text(" ", strip=True) for cell in row.find_all("td")]
         if len(cells) < 8:
             continue
